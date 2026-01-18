@@ -42,7 +42,13 @@ const PeerConnection = {
     Game.showConnecting();
 
     this.peer = new Peer(this.roomCode, {
-      debug: 1
+      debug: 2,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
     });
 
     this.peer.on('open', (id) => {
@@ -155,7 +161,13 @@ const PeerConnection = {
     Game.showConnecting();
 
     this.peer = new Peer({
-      debug: 1
+      debug: 2,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
     });
 
     this.peer.on('open', () => {
