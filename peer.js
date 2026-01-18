@@ -46,7 +46,18 @@ const PeerConnection = {
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          }
         ]
       }
     });
@@ -157,8 +168,6 @@ const PeerConnection = {
     this.isHost = false;
     this.roomCode = code;
     this.myName = username;
-    this.joinAttempts = 0;
-    this.maxJoinAttempts = 3;
 
     Game.showConnecting();
 
@@ -167,58 +176,72 @@ const PeerConnection = {
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          }
         ]
       }
     });
 
     this.peer.on('open', () => {
-      console.log('Connecting to room:', code);
-      this.attemptConnection(code);
+      console.log('My peer opened, connecting to room:', code);
+
+      this.hostConnection = this.peer.connect(code, {
+        reliable: true
+      });
+
+      // Timeout if connection doesn't open in 10 seconds
+      const connectionTimeout = setTimeout(() => {
+        if (!this.hostConnection || !this.hostConnection.open) {
+          console.log('Connection timeout');
+          Game.showError('Connection timed out. Make sure the host is in the lobby and try again.');
+          this.cleanup();
+        }
+      }, 10000);
+
+      this.hostConnection.on('open', () => {
+        clearTimeout(connectionTimeout);
+        console.log('Connected to host, sending join request...');
+        this.hostConnection.send({
+          type: 'join-request',
+          name: this.myName
+        });
+      });
+
+      this.hostConnection.on('data', (data) => {
+        this.handleGuestMessage(data);
+      });
+
+      this.hostConnection.on('close', () => {
+        clearTimeout(connectionTimeout);
+        console.log('Disconnected from host');
+        Game.showError('Host disconnected.');
+        this.cleanup();
+      });
+
+      this.hostConnection.on('error', (err) => {
+        clearTimeout(connectionTimeout);
+        console.error('Connection error:', err);
+        Game.showError('Connection failed. Try again.');
+      });
     });
 
     this.peer.on('error', (err) => {
       console.error('Peer error:', err);
       if (err.type === 'peer-unavailable') {
-        this.joinAttempts++;
-        if (this.joinAttempts < this.maxJoinAttempts) {
-          console.log(`Retry attempt ${this.joinAttempts}...`);
-          setTimeout(() => this.attemptConnection(code), 1500);
-        } else {
-          Game.showError('Room not found. Make sure the host has created the room and the code is correct.');
-        }
+        Game.showError('Room not found. Make sure the host has created the room first.');
       } else {
-        Game.showError('Connection error. Please try again.');
+        Game.showError('Connection error: ' + err.type);
       }
-    });
-  },
-
-  // Attempt to connect to host
-  attemptConnection(code) {
-    this.hostConnection = this.peer.connect(code, {
-      reliable: true
-    });
-
-    this.hostConnection.on('open', () => {
-      console.log('Connected to host, sending join request...');
-      this.hostConnection.send({
-        type: 'join-request',
-        name: this.myName
-      });
-    });
-
-    this.hostConnection.on('data', (data) => {
-      this.handleGuestMessage(data);
-    });
-
-    this.hostConnection.on('close', () => {
-      console.log('Disconnected from host');
-      Game.showError('Host disconnected.');
-      this.cleanup();
-    });
-
-    this.hostConnection.on('error', (err) => {
-      console.error('Connection error:', err);
     });
   },
 
