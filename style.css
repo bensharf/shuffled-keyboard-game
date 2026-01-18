@@ -127,15 +127,54 @@ body {
   margin-top: 2rem;
 }
 
+.code-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
 .room-code-display .code {
   font-size: 2.5rem;
   font-weight: bold;
   letter-spacing: 0.3em;
   color: #00d4ff;
   background: #1a1a2e;
-  padding: 1rem 2rem;
+  padding: 1rem 1.5rem;
   border-radius: 12px;
-  margin: 1rem 0;
+  cursor: pointer;
+  transition: background 0.2s;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.room-code-display .code:hover {
+  background: #252547;
+}
+
+.btn-copy {
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #2d3748;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn-copy:hover {
+  background: #3d4a5c;
+}
+
+.btn-copy:active {
+  transform: scale(0.95);
+}
+
+.btn-copy.copied {
+  background: #10b981;
 }
 
 .waiting, .connecting {

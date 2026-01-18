@@ -410,10 +410,38 @@ const Game = {
     document.getElementById('room-status').innerHTML = `
       <div class="room-code-display">
         <p>Room created! Share this code:</p>
-        <div class="code">${code}</div>
+        <div class="code-container">
+          <div class="code" id="room-code">${code}</div>
+          <button class="btn-copy" id="copy-code-btn" title="Copy code">Copy</button>
+        </div>
         <p class="waiting">Waiting for opponent...</p>
       </div>
     `;
+
+    document.getElementById('copy-code-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copy-code-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    });
+
+    // Also make the code itself clickable to copy
+    document.getElementById('room-code').addEventListener('click', () => {
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copy-code-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    });
   },
 
   // Show connecting status
