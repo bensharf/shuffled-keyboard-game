@@ -1,4 +1,13 @@
-/* Mobile-first styling for Shuffled Keyboard game */
+/* Mobile-first styling for Scotty's Keyboard Shuffle - Buffalo Bills Edition */
+
+:root {
+  --bills-blue: #00338D;
+  --bills-red: #C60C30;
+  --bills-white: #FFFFFF;
+  --bills-blue-dark: #002266;
+  --bills-blue-light: #0047AB;
+  --bills-red-dark: #9A0A26;
+}
 
 * {
   box-sizing: border-box;
@@ -8,8 +17,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--bills-blue-dark) 0%, var(--bills-blue) 50%, var(--bills-blue-dark) 100%);
+  color: var(--bills-white);
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -37,17 +46,19 @@ body {
 }
 
 .lobby h1 {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   margin-bottom: 0.5rem;
-  background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+  background: linear-gradient(90deg, var(--bills-white), var(--bills-red), var(--bills-white));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: none;
 }
 
 .lobby .subtitle {
-  color: #8892b0;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 2rem;
+  font-weight: 600;
 }
 
 .lobby-buttons {
@@ -71,25 +82,27 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #00d4ff 0%, #7b2cbf 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--bills-red) 0%, var(--bills-red-dark) 100%);
+  color: var(--bills-white);
+  border: 2px solid var(--bills-white);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(198, 12, 48, 0.5);
 }
 
 .btn-secondary {
-  background: #2d3748;
-  color: #fff;
+  background: var(--bills-blue-light);
+  color: var(--bills-white);
+  border: 2px solid var(--bills-white);
 }
 
 .btn-secondary:hover {
-  background: #3d4a5c;
+  background: var(--bills-blue);
 }
 
 .divider {
-  color: #8892b0;
+  color: rgba(255, 255, 255, 0.7);
   padding: 0.5rem 0;
 }
 
@@ -103,23 +116,24 @@ body {
   padding: 1rem;
   font-size: 1.2rem;
   text-align: center;
-  border: 2px solid #2d3748;
+  border: 2px solid var(--bills-white);
   border-radius: 12px;
-  background: #1a1a2e;
-  color: #fff;
+  background: var(--bills-blue-dark);
+  color: var(--bills-white);
   text-transform: uppercase;
   letter-spacing: 0.2em;
 }
 
 .join-section input:focus {
   outline: none;
-  border-color: #00d4ff;
+  border-color: var(--bills-red);
+  box-shadow: 0 0 10px rgba(198, 12, 48, 0.5);
 }
 
 .join-section input::placeholder {
   text-transform: none;
   letter-spacing: normal;
-  color: #8892b0;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* Room status */
@@ -139,34 +153,35 @@ body {
   font-size: 2.5rem;
   font-weight: bold;
   letter-spacing: 0.3em;
-  color: #00d4ff;
-  background: #1a1a2e;
+  color: var(--bills-white);
+  background: var(--bills-red);
   padding: 1rem 1.5rem;
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.2s;
   user-select: all;
   -webkit-user-select: all;
+  border: 3px solid var(--bills-white);
 }
 
 .room-code-display .code:hover {
-  background: #252547;
+  background: var(--bills-red-dark);
 }
 
 .btn-copy {
   padding: 0.75rem 1.25rem;
   font-size: 1rem;
   font-weight: 600;
-  border: none;
+  border: 2px solid var(--bills-white);
   border-radius: 8px;
-  background: #2d3748;
-  color: #fff;
+  background: var(--bills-blue-light);
+  color: var(--bills-white);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
 }
 
 .btn-copy:hover {
-  background: #3d4a5c;
+  background: var(--bills-blue);
 }
 
 .btn-copy:active {
@@ -178,7 +193,7 @@ body {
 }
 
 .waiting, .connecting {
-  color: #8892b0;
+  color: rgba(255, 255, 255, 0.8);
   animation: pulse 2s infinite;
 }
 
@@ -203,10 +218,12 @@ body {
 
 .score-display {
   font-size: 1rem;
-  color: #8892b0;
+  color: var(--bills-white);
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bills-red);
   border-radius: 20px;
+  font-weight: 600;
+  border: 2px solid var(--bills-white);
 }
 
 .word-container {
@@ -224,19 +241,21 @@ body {
   font-size: 2rem;
   font-weight: bold;
   padding: 0.3rem 0.5rem;
-  background: #2d3748;
+  background: var(--bills-blue-light);
   border-radius: 8px;
   min-width: 2.5rem;
   text-align: center;
+  border: 2px solid var(--bills-white);
 }
 
 .char.typed {
-  background: #00d4ff;
-  color: #1a1a2e;
+  background: var(--bills-red);
+  color: var(--bills-white);
 }
 
 .char.current {
-  background: #7b2cbf;
+  background: var(--bills-white);
+  color: var(--bills-blue);
   animation: blink 1s infinite;
 }
 
@@ -247,7 +266,7 @@ body {
 
 .status-container {
   text-align: center;
-  color: #8892b0;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
 }
 
@@ -259,7 +278,8 @@ body {
 .countdown {
   font-size: 4rem;
   font-weight: bold;
-  color: #00d4ff;
+  color: var(--bills-red);
+  text-shadow: 2px 2px 0 var(--bills-white), -2px -2px 0 var(--bills-white), 2px -2px 0 var(--bills-white), -2px 2px 0 var(--bills-white);
   height: 5rem;
   display: flex;
   align-items: center;
@@ -287,8 +307,9 @@ body {
   flex-direction: column;
   gap: 6px;
   padding: 10px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 16px;
+  border: 3px solid var(--bills-red);
 }
 
 .keyboard-row {
@@ -302,10 +323,10 @@ body {
   height: 48px;
   font-size: 1.1rem;
   font-weight: 600;
-  border: none;
+  border: 2px solid var(--bills-white);
   border-radius: 8px;
-  background: linear-gradient(180deg, #3d4a5c 0%, #2d3748 100%);
-  color: #fff;
+  background: linear-gradient(180deg, var(--bills-blue-light) 0%, var(--bills-blue) 100%);
+  color: var(--bills-white);
   cursor: pointer;
   transition: transform 0.1s, background 0.1s;
   user-select: none;
@@ -316,12 +337,12 @@ body {
 
 .key:active {
   transform: scale(0.95);
-  background: #4a5568;
+  background: var(--bills-blue-dark);
 }
 
 .key.correct {
-  background: #00d4ff;
-  color: #1a1a2e;
+  background: var(--bills-red);
+  color: var(--bills-white);
 }
 
 .key.incorrect {
@@ -349,20 +370,23 @@ body {
 .results h2 {
   font-size: 1.8rem;
   margin-bottom: 1rem;
-  background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--bills-white);
+  text-shadow: 2px 2px 0 var(--bills-red);
 }
 
 .results .times {
-  color: #8892b0;
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 1rem;
 }
 
 .results .score {
   font-size: 1.2rem;
   margin-bottom: 2rem;
+  background: var(--bills-red);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  display: inline-block;
+  border: 2px solid var(--bills-white);
 }
 
 .results .btn {
@@ -378,7 +402,7 @@ body {
 /* Responsive adjustments for larger screens */
 @media (min-width: 600px) {
   .lobby h1 {
-    font-size: 3rem;
+    font-size: 2.8rem;
   }
 
   .char {
@@ -413,6 +437,6 @@ body {
 .btn:focus,
 .key:focus,
 input:focus {
-  outline: 2px solid #00d4ff;
+  outline: 2px solid var(--bills-red);
   outline-offset: 2px;
 }

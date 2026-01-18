@@ -368,8 +368,8 @@ const Game = {
   renderLobby() {
     document.getElementById('game-area').innerHTML = `
       <div class="lobby">
-        <h1>Shuffled Keyboard</h1>
-        <p class="subtitle">Type fast on a shuffled keyboard!</p>
+        <h1>Scotty's Keyboard Shuffle</h1>
+        <p class="subtitle">Go Bills! Type fast on a shuffled keyboard!</p>
 
         <div class="lobby-buttons">
           <button id="create-room-btn" class="btn btn-primary">Create Room</button>
