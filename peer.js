@@ -116,16 +116,6 @@ const PeerConnection = {
         Game.showReadyLobby(this.players, this.myId);
         break;
 
-      case 'ready-toggle':
-        const player = this.players.find(p => p.id === data.playerId);
-        if (player) {
-          player.ready = data.ready;
-          this.broadcastPlayerList();
-          Game.showReadyLobby(this.players, this.myId);
-          this.checkAllReady();
-        }
-        break;
-
       case 'progress':
         this.broadcast({
           type: 'progress',
@@ -254,45 +244,18 @@ const PeerConnection = {
     });
   },
 
-  // Toggle ready status
-  toggleReady() {
-    const me = this.players.find(p => p.id === this.myId);
-    if (me) {
-      me.ready = !me.ready;
-
-      if (this.isHost) {
-        this.broadcastPlayerList();
-        Game.showReadyLobby(this.players, this.myId);
-        this.checkAllReady();
-      } else {
-        this.hostConnection.send({
-          type: 'ready-toggle',
-          playerId: this.myId,
-          ready: me.ready
-        });
-      }
-    }
-  },
-
-  // Check if all players are ready (host only)
-  checkAllReady() {
+  // Host starts the game manually
+  hostStartGame() {
     if (!this.isHost) return;
-    if (this.players.length < 3) return; // Need exactly 3 players
+    if (this.players.length < 2) return; // Need at least 2 players
 
-    const allReady = this.players.every(p => p.ready);
-    if (allReady && !this.allReady) {
-      this.allReady = true;
-      // Start game after a short delay
-      setTimeout(() => {
-        const seed = this.generateSeed();
-        this.broadcast({
-          type: 'game-start',
-          seed: seed,
-          players: this.players
-        });
-        Game.startGame(seed, this.players, this.myId);
-      }, 500);
-    }
+    const seed = this.generateSeed();
+    this.broadcast({
+      type: 'game-start',
+      seed: seed,
+      players: this.players
+    });
+    Game.startGame(seed, this.players, this.myId);
   },
 
   // Send a message

@@ -778,32 +778,25 @@ input:focus {
   transition: all 0.3s ease;
 }
 
-.player-card.ready {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.2);
-}
-
 .player-card.is-me {
   border-color: var(--bills-red);
-}
-
-.player-card.is-me.ready {
-  border-color: #10b981;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+  background: rgba(198, 12, 48, 0.2);
 }
 
 .player-name {
   font-size: 1.1rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.player-status {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.player-card.ready .player-status {
-  color: #10b981;
+.host-badge {
+  font-size: 0.7rem;
+  background: var(--bills-red);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
   font-weight: bold;
 }
 
@@ -813,20 +806,18 @@ input:focus {
   animation: pulse 2s infinite;
 }
 
-.btn-ready {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: var(--bills-white);
-  border: 2px solid var(--bills-white);
-  animation: readyPulse 1.5s infinite;
+.waiting-for-host {
+  padding: 1rem 2rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  animation: pulse 2s infinite;
 }
 
-@keyframes readyPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 20px 5px rgba(16, 185, 129, 0.3);
-  }
+#start-game-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .player-count {
