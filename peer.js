@@ -1,12 +1,15 @@
-// P2P connection handling using PeerJS - 2 players only
+// P2P connection handling using PeerJS - up to 3 players with ready system
 
 const PeerConnection = {
   peer: null,
-  connection: null,
+  connections: [], // Array of connections (for host)
+  hostConnection: null, // Single connection to host (for guests)
   isHost: false,
   roomCode: null,
   myName: null,
-  opponentName: null,
+  myId: null,
+  players: [], // {id, name, ready}
+  allReady: false,
 
   // Generate a random room code
   generateRoomCode() {
@@ -16,6 +19,11 @@ const PeerConnection = {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
     return code;
+  },
+
+  // Generate a player ID
+  generatePlayerId() {
+    return 'P' + Math.random().toString(36).substr(2, 6).toUpperCase();
   },
 
   // Generate a game seed
@@ -28,6 +36,8 @@ const PeerConnection = {
     this.isHost = true;
     this.roomCode = this.generateRoomCode();
     this.myName = username;
+    this.myId = this.generatePlayerId();
+    this.players = [{id: this.myId, name: username, ready: false}];
 
     Game.showConnecting();
 
@@ -37,12 +47,12 @@ const PeerConnection = {
 
     this.peer.on('open', (id) => {
       console.log('Room created with ID:', id);
-      Game.showRoomCode(id, this.myName);
+      Game.showReadyLobby(this.players, this.myId);
     });
 
     this.peer.on('connection', (conn) => {
-      if (this.connection) {
-        // Room is full - reject
+      if (this.connections.length >= 2) {
+        // Room is full (host + 2 guests = 3 players max)
         conn.on('open', () => {
           conn.send({ type: 'room-full' });
           setTimeout(() => conn.close(), 100);
@@ -50,9 +60,9 @@ const PeerConnection = {
         return;
       }
 
-      console.log('Guest connected');
-      this.connection = conn;
-      this.setupConnection();
+      console.log('Guest connecting...');
+      this.connections.push(conn);
+      this.setupHostConnection(conn);
     });
 
     this.peer.on('error', (err) => {
@@ -63,6 +73,77 @@ const PeerConnection = {
         Game.showError('Connection error. Please try again.');
       }
     });
+  },
+
+  // Setup connection handler for host
+  setupHostConnection(conn) {
+    conn.on('open', () => {
+      console.log('Guest connected, waiting for their info...');
+    });
+
+    conn.on('data', (data) => {
+      this.handleHostMessage(data, conn);
+    });
+
+    conn.on('close', () => {
+      console.log('Guest disconnected:', conn.odPlayerId);
+      this.connections = this.connections.filter(c => c !== conn);
+      this.players = this.players.filter(p => p.id !== conn.odPlayerId);
+      this.broadcastPlayerList();
+      Game.showReadyLobby(this.players, this.myId);
+    });
+  },
+
+  // Handle messages as host
+  handleHostMessage(data, fromConn) {
+    console.log('Host received:', data);
+
+    switch (data.type) {
+      case 'join-request':
+        const newId = this.generatePlayerId();
+        fromConn.odPlayerId = newId;
+        this.players.push({id: newId, name: data.name, ready: false});
+
+        // Send player their ID and current player list
+        fromConn.send({
+          type: 'join-accepted',
+          playerId: newId,
+          players: this.players,
+          roomCode: this.roomCode
+        });
+
+        this.broadcastPlayerList();
+        Game.showReadyLobby(this.players, this.myId);
+        break;
+
+      case 'ready-toggle':
+        const player = this.players.find(p => p.id === data.playerId);
+        if (player) {
+          player.ready = data.ready;
+          this.broadcastPlayerList();
+          Game.showReadyLobby(this.players, this.myId);
+          this.checkAllReady();
+        }
+        break;
+
+      case 'progress':
+        this.broadcast({
+          type: 'progress',
+          playerId: fromConn.odPlayerId,
+          progress: data.progress
+        }, fromConn);
+        Game.updatePlayerProgress(fromConn.odPlayerId, data.progress);
+        break;
+
+      case 'complete':
+        this.broadcast({
+          type: 'complete',
+          playerId: fromConn.odPlayerId,
+          time: data.time
+        }, fromConn);
+        Game.playerComplete(fromConn.odPlayerId, data.time);
+        break;
+    }
   },
 
   // Join an existing room (guest)
@@ -79,21 +160,29 @@ const PeerConnection = {
 
     this.peer.on('open', () => {
       console.log('Connecting to room:', code);
-      this.connection = this.peer.connect(code, {
+      this.hostConnection = this.peer.connect(code, {
         reliable: true
       });
 
-      this.connection.on('open', () => {
-        console.log('Connected to host');
-        this.setupConnection();
-        // Send our name to the host
-        this.send({
-          type: 'player-joined',
+      this.hostConnection.on('open', () => {
+        console.log('Connected to host, sending join request...');
+        this.hostConnection.send({
+          type: 'join-request',
           name: this.myName
         });
       });
 
-      this.connection.on('error', (err) => {
+      this.hostConnection.on('data', (data) => {
+        this.handleGuestMessage(data);
+      });
+
+      this.hostConnection.on('close', () => {
+        console.log('Disconnected from host');
+        Game.showError('Host disconnected.');
+        this.cleanup();
+      });
+
+      this.hostConnection.on('error', (err) => {
         console.error('Connection error:', err);
         Game.showError('Failed to connect. Check the room code.');
       });
@@ -109,46 +198,29 @@ const PeerConnection = {
     });
   },
 
-  // Setup connection event handlers
-  setupConnection() {
-    this.connection.on('data', (data) => {
-      this.handleMessage(data);
-    });
-
-    this.connection.on('close', () => {
-      console.log('Connection closed');
-      Game.showError('Opponent disconnected.');
-      this.cleanup();
-    });
-  },
-
-  // Handle incoming messages
-  handleMessage(data) {
-    console.log('Received:', data);
+  // Handle messages as guest
+  handleGuestMessage(data) {
+    console.log('Guest received:', data);
 
     switch (data.type) {
       case 'room-full':
-        Game.showError('Room is full.');
+        Game.showError('Room is full (max 3 players).');
         this.cleanup();
         break;
 
-      case 'player-joined':
-        // Host receives guest's name
-        this.opponentName = data.name;
-        // Send game start with host's name
-        const seed = this.generateSeed();
-        this.send({
-          type: 'game-start',
-          seed: seed,
-          hostName: this.myName
-        });
-        Game.startGame(seed, this.myName, this.opponentName);
+      case 'join-accepted':
+        this.myId = data.playerId;
+        this.players = data.players;
+        Game.showReadyLobby(this.players, this.myId);
+        break;
+
+      case 'player-list':
+        this.players = data.players;
+        Game.showReadyLobby(this.players, this.myId);
         break;
 
       case 'game-start':
-        // Guest receives host's name and game start
-        this.opponentName = data.hostName;
-        Game.startGame(data.seed, this.myName, this.opponentName);
+        Game.startGame(data.seed, this.players, this.myId);
         break;
 
       case 'start-round':
@@ -156,55 +228,130 @@ const PeerConnection = {
         break;
 
       case 'progress':
-        Game.updateOpponentProgress(data.progress);
+        Game.updatePlayerProgress(data.playerId, data.progress);
         break;
 
       case 'complete':
-        Game.opponentComplete(data.time);
+        Game.playerComplete(data.playerId, data.time);
         break;
-
-      default:
-        console.log('Unknown message type:', data.type);
     }
   },
 
-  // Send a message to the other player
+  // Broadcast to all guests
+  broadcast(data, excludeConn = null) {
+    this.connections.forEach(conn => {
+      if (conn !== excludeConn && conn.open) {
+        conn.send(data);
+      }
+    });
+  },
+
+  // Broadcast updated player list to all guests
+  broadcastPlayerList() {
+    this.broadcast({
+      type: 'player-list',
+      players: this.players
+    });
+  },
+
+  // Toggle ready status
+  toggleReady() {
+    const me = this.players.find(p => p.id === this.myId);
+    if (me) {
+      me.ready = !me.ready;
+
+      if (this.isHost) {
+        this.broadcastPlayerList();
+        Game.showReadyLobby(this.players, this.myId);
+        this.checkAllReady();
+      } else {
+        this.hostConnection.send({
+          type: 'ready-toggle',
+          playerId: this.myId,
+          ready: me.ready
+        });
+      }
+    }
+  },
+
+  // Check if all players are ready (host only)
+  checkAllReady() {
+    if (!this.isHost) return;
+    if (this.players.length < 2) return; // Need at least 2 players
+
+    const allReady = this.players.every(p => p.ready);
+    if (allReady && !this.allReady) {
+      this.allReady = true;
+      // Start game after a short delay
+      setTimeout(() => {
+        const seed = this.generateSeed();
+        this.broadcast({
+          type: 'game-start',
+          seed: seed,
+          players: this.players
+        });
+        Game.startGame(seed, this.players, this.myId);
+      }, 500);
+    }
+  },
+
+  // Send a message
   send(data) {
-    if (this.connection && this.connection.open) {
-      this.connection.send(data);
+    if (this.isHost) {
+      this.broadcast(data);
+    } else if (this.hostConnection && this.hostConnection.open) {
+      this.hostConnection.send(data);
     }
   },
 
   // Send typing progress
   sendProgress(progress) {
-    this.send({
-      type: 'progress',
-      progress: progress
-    });
+    if (this.isHost) {
+      this.broadcast({
+        type: 'progress',
+        playerId: this.myId,
+        progress: progress
+      });
+    } else {
+      this.send({
+        type: 'progress',
+        progress: progress
+      });
+    }
   },
 
   // Send completion
   sendComplete(time) {
-    this.send({
-      type: 'complete',
-      time: time
-    });
+    if (this.isHost) {
+      this.broadcast({
+        type: 'complete',
+        playerId: this.myId,
+        time: time
+      });
+    } else {
+      this.send({
+        type: 'complete',
+        time: time
+      });
+    }
   },
 
   // Send start round (host only)
   sendStartRound(roundData) {
-    this.send({
+    this.broadcast({
       type: 'start-round',
       roundNumber: roundData.roundNumber,
       word: roundData.word
     });
   },
 
-  // Cleanup connection
+  // Cleanup
   cleanup() {
-    if (this.connection) {
-      this.connection.close();
-      this.connection = null;
+    this.connections.forEach(conn => conn.close());
+    this.connections = [];
+    if (this.hostConnection) {
+      this.hostConnection.close();
+      this.hostConnection = null;
     }
     if (this.peer) {
       this.peer.destroy();

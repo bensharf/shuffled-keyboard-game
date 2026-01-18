@@ -1,4 +1,4 @@
-// Game logic for the shuffled keyboard typing game - 2 players
+// Game logic for the shuffled keyboard typing game - up to 3 players with ready system
 
 const Game = {
   // Standard QWERTY layout
@@ -10,21 +10,16 @@ const Game = {
 
   // Game state
   state: {
-    phase: 'lobby', // lobby, countdown, playing, waiting, results
+    phase: 'lobby', // lobby, ready-lobby, countdown, playing, waiting, results
     seed: null,
     roundNumber: 0,
     currentWord: '',
     typedChars: '',
     startTime: null,
-    myTime: null,
-    opponentTime: null,
-    myScore: 0,
-    opponentScore: 0,
-    opponentProgress: 0,
+    players: [], // {id, name, ready, score, time, progress}
+    myId: null,
     shuffledLayout: null,
-    keyMapping: null,
-    myName: '',
-    opponentName: ''
+    keyMapping: null
   },
 
   // Initialize the game
@@ -192,43 +187,64 @@ const Game = {
     display.innerHTML = html;
   },
 
-  // Update opponent progress display
-  updateOpponentProgress(progress) {
-    this.state.opponentProgress = progress;
-    const display = document.getElementById('opponent-status');
-    if (display && this.state.phase === 'playing') {
-      const progressBar = '█'.repeat(progress) + '░'.repeat(this.state.currentWord.length - progress);
-      display.textContent = `${this.state.opponentName}: [${progressBar}]`;
+  // Update player progress display
+  updatePlayerProgress(playerId, progress) {
+    const player = this.state.players.find(p => p.id === playerId);
+    if (player) {
+      player.progress = progress;
     }
+    this.updateStatusDisplay();
+  },
+
+  // Update all player status displays
+  updateStatusDisplay() {
+    this.state.players.forEach(player => {
+      const display = document.getElementById(`player-status-${player.id}`);
+      if (display && this.state.phase === 'playing') {
+        if (player.time !== null) {
+          display.textContent = `${player.name}: ${player.time.toFixed(2)}s ✓`;
+        } else {
+          const progress = player.progress || 0;
+          const progressBar = '█'.repeat(progress) + '░'.repeat(this.state.currentWord.length - progress);
+          display.textContent = `${player.name}: [${progressBar}]`;
+        }
+      }
+    });
   },
 
   // Complete word - player finished typing
   completeWord() {
     const endTime = Date.now();
-    this.state.myTime = (endTime - this.state.startTime) / 1000;
+    const myTime = (endTime - this.state.startTime) / 1000;
+
+    const me = this.state.players.find(p => p.id === this.state.myId);
+    if (me) {
+      me.time = myTime;
+      me.progress = this.state.currentWord.length;
+    }
+
     this.state.phase = 'waiting';
+    PeerConnection.sendComplete(myTime);
 
-    PeerConnection.sendComplete(this.state.myTime);
-
-    document.getElementById('my-status').textContent = `${this.state.myName}: ${this.state.myTime.toFixed(2)}s ✓`;
-
+    this.updateStatusDisplay();
     this.checkRoundEnd();
   },
 
-  // Opponent completed the word
-  opponentComplete(time) {
-    this.state.opponentTime = time;
-    const display = document.getElementById('opponent-status');
-    if (display) {
-      display.textContent = `${this.state.opponentName}: ${time.toFixed(2)}s ✓`;
+  // Player completed the word
+  playerComplete(playerId, time) {
+    const player = this.state.players.find(p => p.id === playerId);
+    if (player) {
+      player.time = time;
+      player.progress = this.state.currentWord.length;
     }
+    this.updateStatusDisplay();
     this.checkRoundEnd();
   },
 
   // Check if round should end
   checkRoundEnd() {
-    if (this.state.myTime !== null && this.state.opponentTime !== null) {
-      // Small delay to let both players see the times
+    const allDone = this.state.players.every(p => p.time !== null);
+    if (allDone) {
       setTimeout(() => this.endRound(), 500);
     }
   },
@@ -237,42 +253,55 @@ const Game = {
   endRound() {
     this.state.phase = 'results';
 
+    // Sort players by time
+    const sortedPlayers = [...this.state.players].sort((a, b) => a.time - b.time);
+    const winner = sortedPlayers[0];
+
+    // Award point to winner
+    const winnerPlayer = this.state.players.find(p => p.id === winner.id);
+    if (winnerPlayer) {
+      winnerPlayer.score = (winnerPlayer.score || 0) + 1;
+    }
+
+    const me = this.state.players.find(p => p.id === this.state.myId);
+    const iWon = winner.id === this.state.myId;
+
     let resultText;
     let resultClass;
-    if (this.state.myTime < this.state.opponentTime) {
-      this.state.myScore++;
+    if (iWon) {
       resultText = 'YOU WIN!';
       resultClass = 'win';
-    } else if (this.state.opponentTime < this.state.myTime) {
-      this.state.opponentScore++;
-      resultText = 'YOU LOSE!';
-      resultClass = 'lose';
     } else {
-      resultText = "IT'S A TIE!";
-      resultClass = 'tie';
+      resultText = `${winner.name} WINS!`;
+      resultClass = 'lose';
     }
 
     // Check if game is over (first to 5)
-    if (this.state.myScore >= 5 || this.state.opponentScore >= 5) {
-      this.showGameOver();
+    const gameWinner = this.state.players.find(p => (p.score || 0) >= 5);
+    if (gameWinner) {
+      this.showGameOver(gameWinner);
     } else {
-      this.showResults(resultText, resultClass);
+      this.showResults(resultText, resultClass, sortedPlayers);
     }
   },
 
   // Show game over screen
-  showGameOver() {
-    const iWon = this.state.myScore >= 5;
+  showGameOver(winner) {
+    const iWon = winner.id === this.state.myId;
+    const sortedPlayers = [...this.state.players].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    let scoresHtml = sortedPlayers.map(p => {
+      const isWinner = p.id === winner.id;
+      return `<div class="final-score-row ${isWinner ? 'winner' : ''}">${p.name}: ${p.score || 0}</div>`;
+    }).join('');
 
     document.getElementById('game-area').innerHTML = `
       <div class="results game-over">
-        <h2 class="${iWon ? 'win' : 'lose'}">${iWon ? 'VICTORY!' : 'DEFEAT!'}</h2>
+        <h2 class="${iWon ? 'win' : 'lose'}">${iWon ? 'VICTORY!' : winner.name + ' WINS!'}</h2>
         <div class="final-score">
           <p>Final Score</p>
-          <div class="final-score-display">
-            <span class="${iWon ? 'winner' : ''}">${this.state.myName}: ${this.state.myScore}</span>
-            <span class="vs">-</span>
-            <span class="${!iWon ? 'winner' : ''}">${this.state.opponentName}: ${this.state.opponentScore}</span>
+          <div class="final-scores-list">
+            ${scoresHtml}
           </div>
         </div>
         <p class="game-over-message">${iWon ? 'Go Bills!' : 'Better luck next time!'}</p>
@@ -286,7 +315,19 @@ const Game = {
   },
 
   // Show results screen
-  showResults(resultText, resultClass) {
+  showResults(resultText, resultClass, sortedPlayers) {
+    let timesHtml = sortedPlayers.map((p, index) => {
+      const isWinner = index === 0;
+      return `
+        <div class="time-row ${isWinner ? 'winner' : ''}">
+          <span>${p.name}:</span>
+          <span>${p.time.toFixed(2)}s</span>
+        </div>
+      `;
+    }).join('');
+
+    let scoresHtml = this.state.players.map(p => `${p.name}: ${p.score || 0}`).join(' | ');
+
     document.getElementById('game-area').innerHTML = `
       <div class="results">
         <h2 class="${resultClass}">${resultText}</h2>
@@ -295,17 +336,10 @@ const Game = {
           <div class="revealed-word">${this.state.currentWord}</div>
         </div>
         <div class="times">
-          <div class="time-row ${this.state.myTime <= this.state.opponentTime ? 'winner' : ''}">
-            <span>${this.state.myName}:</span>
-            <span>${this.state.myTime.toFixed(2)}s</span>
-          </div>
-          <div class="time-row ${this.state.opponentTime < this.state.myTime ? 'winner' : ''}">
-            <span>${this.state.opponentName}:</span>
-            <span>${this.state.opponentTime.toFixed(2)}s</span>
-          </div>
+          ${timesHtml}
         </div>
         <div class="score">
-          ${this.state.myName}: ${this.state.myScore} | ${this.state.opponentName}: ${this.state.opponentScore}
+          ${scoresHtml}
         </div>
         <button id="next-round-btn" class="btn btn-primary">Next Round</button>
       </div>
@@ -334,22 +368,27 @@ const Game = {
     this.beginRound(word);
   },
 
-  // Begin a round (both players)
+  // Begin a round (all players)
   beginRound(word) {
     this.state.currentWord = word;
     this.state.typedChars = '';
-    this.state.myTime = null;
-    this.state.opponentTime = null;
-    this.state.opponentProgress = 0;
+
+    // Reset time and progress for all players
+    this.state.players.forEach(p => {
+      p.time = null;
+      p.progress = 0;
+    });
 
     this.renderCountdownScreen();
   },
 
   // Render countdown screen (word and keyboard hidden)
   renderCountdownScreen() {
+    let scoresHtml = this.state.players.map(p => `${p.name}: ${p.score || 0}`).join(' | ');
+
     document.getElementById('game-area').innerHTML = `
       <div class="game-screen">
-        <div class="score-display">${this.state.myName}: ${this.state.myScore} | ${this.state.opponentName}: ${this.state.opponentScore}</div>
+        <div class="score-display">${scoresHtml}</div>
         <div class="round-display">Round ${this.state.roundNumber}</div>
         <div class="get-ready">GET READY!</div>
         <div id="countdown" class="countdown">3</div>
@@ -382,6 +421,10 @@ const Game = {
 
   // Show the word and start playing
   showWordAndStart() {
+    let statusHtml = this.state.players.map(p =>
+      `<p id="player-status-${p.id}">${p.name}: typing...</p>`
+    ).join('');
+
     document.getElementById('game-area').innerHTML = `
       <div class="game-screen">
         <div class="round-display">Round ${this.state.roundNumber}</div>
@@ -389,8 +432,7 @@ const Game = {
           <div id="word-display" class="word-display"></div>
         </div>
         <div class="status-container">
-          <p id="my-status">${this.state.myName}: typing...</p>
-          <p id="opponent-status">${this.state.opponentName}: typing...</p>
+          ${statusHtml}
         </div>
         <div id="keyboard" class="keyboard"></div>
       </div>
@@ -438,7 +480,7 @@ const Game = {
 
     document.getElementById('join-room-btn').addEventListener('click', () => {
       const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-      const username = document.getElementById('username-input').value.trim() || 'Player 2';
+      const username = document.getElementById('username-input').value.trim() || 'Player';
       if (code) {
         PeerConnection.joinRoom(code, username);
       }
@@ -447,7 +489,7 @@ const Game = {
     document.getElementById('room-code-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         const code = e.target.value.trim().toUpperCase();
-        const username = document.getElementById('username-input').value.trim() || 'Player 2';
+        const username = document.getElementById('username-input').value.trim() || 'Player';
         if (code) {
           PeerConnection.joinRoom(code, username);
         }
@@ -455,39 +497,66 @@ const Game = {
     });
   },
 
-  // Show room code after creating
-  showRoomCode(code, myName) {
-    document.getElementById('room-status').innerHTML = `
-      <div class="room-code-display">
-        <p>Hey <strong>${myName}</strong>! Share this code:</p>
-        <div class="code-container">
-          <div class="code" id="room-code">${code}</div>
-          <button class="btn-copy" id="copy-code-btn" title="Copy code">Copy</button>
+  // Show ready lobby (Call of Duty style)
+  showReadyLobby(players, myId) {
+    this.state.phase = 'ready-lobby';
+    this.state.players = players.map(p => ({
+      ...p,
+      score: 0,
+      time: null,
+      progress: 0
+    }));
+    this.state.myId = myId;
+
+    const me = players.find(p => p.id === myId);
+    const isReady = me ? me.ready : false;
+
+    let playersHtml = players.map(p => {
+      const isMe = p.id === myId;
+      const readyClass = p.ready ? 'ready' : '';
+      const meClass = isMe ? 'is-me' : '';
+      return `
+        <div class="player-card ${readyClass} ${meClass}">
+          <div class="player-name">${p.name}${isMe ? ' (You)' : ''}</div>
+          <div class="player-status">${p.ready ? 'READY' : 'Not Ready'}</div>
         </div>
-        <p class="waiting">Waiting for opponent to join...</p>
+      `;
+    }).join('');
+
+    const allReady = players.length >= 2 && players.every(p => p.ready);
+    const waitingMessage = players.length < 2
+      ? 'Waiting for more players...'
+      : (allReady ? 'Starting game...' : 'Waiting for all players to ready up...');
+
+    document.getElementById('game-area').innerHTML = `
+      <div class="ready-lobby">
+        <h1>Scotty's Keyboard Shuffle</h1>
+        <div class="room-code-header">
+          <span>Room Code:</span>
+          <span class="room-code-value">${PeerConnection.roomCode}</span>
+          <button class="btn-copy-small" id="copy-code-btn">Copy</button>
+        </div>
+        <div class="players-list">
+          ${playersHtml}
+        </div>
+        <p class="waiting-message">${waitingMessage}</p>
+        <button id="ready-btn" class="btn ${isReady ? 'btn-ready' : 'btn-primary'}">
+          ${isReady ? 'READY!' : 'Ready Up'}
+        </button>
+        <p class="player-count">${players.length}/3 Players</p>
       </div>
     `;
 
-    document.getElementById('copy-code-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(code).then(() => {
-        const btn = document.getElementById('copy-code-btn');
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = 'Copy';
-          btn.classList.remove('copied');
-        }, 2000);
-      });
+    document.getElementById('ready-btn').addEventListener('click', () => {
+      PeerConnection.toggleReady();
     });
 
-    document.getElementById('room-code').addEventListener('click', () => {
-      navigator.clipboard.writeText(code).then(() => {
+    document.getElementById('copy-code-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(PeerConnection.roomCode).then(() => {
         const btn = document.getElementById('copy-code-btn');
         btn.textContent = 'Copied!';
-        btn.classList.add('copied');
         setTimeout(() => {
           btn.textContent = 'Copy';
-          btn.classList.remove('copied');
         }, 2000);
       });
     });
@@ -507,14 +576,17 @@ const Game = {
     `;
   },
 
-  // Start game when both players connected
-  startGame(seed, myName, opponentName) {
+  // Start game when all players ready
+  startGame(seed, players, myId) {
     this.state.seed = seed;
-    this.state.myScore = 0;
-    this.state.opponentScore = 0;
     this.state.roundNumber = 0;
-    this.state.myName = myName;
-    this.state.opponentName = opponentName;
+    this.state.myId = myId;
+    this.state.players = players.map(p => ({
+      ...p,
+      score: 0,
+      time: null,
+      progress: 0
+    }));
 
     // Generate the shuffled layout
     this.generateShuffledLayout(seed);
