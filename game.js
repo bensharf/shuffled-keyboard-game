@@ -524,7 +524,7 @@ const Game = {
     });
   },
 
-  // Show lobby with player list (host can start when ready)
+  // Show lobby with player list and ready buttons
   showReadyLobby(players, myId) {
     this.state.phase = 'ready-lobby';
     this.state.players = players.map(p => ({
@@ -535,28 +535,25 @@ const Game = {
     }));
     this.state.myId = myId;
 
-    const isHost = PeerConnection.isHost;
-    const canStart = players.length >= 2;
+    const me = players.find(p => p.id === myId);
+    const isReady = me ? me.ready : false;
+    const allReady = players.length >= 2 && players.every(p => p.ready);
 
     let playersHtml = players.map(p => {
       const isMe = p.id === myId;
+      const readyClass = p.ready ? 'ready' : '';
       const hostBadge = (p.id === players[0].id) ? ' <span class="host-badge">HOST</span>' : '';
       return `
-        <div class="player-card ${isMe ? 'is-me' : ''}">
+        <div class="player-card ${isMe ? 'is-me' : ''} ${readyClass}">
           <div class="player-name">${p.name}${isMe ? ' (You)' : ''}${hostBadge}</div>
+          <div class="player-ready-status">${p.ready ? 'READY' : 'Not Ready'}</div>
         </div>
       `;
     }).join('');
 
     const waitingMessage = players.length < 2
       ? 'Waiting for players to join...'
-      : (isHost ? 'Ready to start!' : 'Waiting for host to start the game...');
-
-    const buttonHtml = isHost
-      ? `<button id="start-game-btn" class="btn btn-primary" ${!canStart ? 'disabled' : ''}>
-          ${canStart ? 'Start Game' : 'Need at least 2 players'}
-         </button>`
-      : `<div class="waiting-for-host">Waiting for host...</div>`;
+      : (allReady ? 'Starting game...' : 'Waiting for all players to ready up...');
 
     document.getElementById('game-area').innerHTML = `
       <div class="ready-lobby">
@@ -571,16 +568,16 @@ const Game = {
           ${playersHtml}
         </div>
         <p class="waiting-message">${waitingMessage}</p>
-        ${buttonHtml}
+        <button id="ready-btn" class="btn ${isReady ? 'btn-ready' : 'btn-primary'}">
+          ${isReady ? 'READY!' : 'Ready Up'}
+        </button>
         <p class="player-count">${players.length}/3 Players</p>
       </div>
     `;
 
-    if (isHost && canStart) {
-      document.getElementById('start-game-btn').addEventListener('click', () => {
-        PeerConnection.hostStartGame();
-      });
-    }
+    document.getElementById('ready-btn').addEventListener('click', () => {
+      PeerConnection.toggleReady();
+    });
 
     document.getElementById('copy-code-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(PeerConnection.roomCode).then(() => {
