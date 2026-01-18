@@ -523,9 +523,9 @@ const Game = {
       `;
     }).join('');
 
-    const allReady = players.length >= 2 && players.every(p => p.ready);
-    const waitingMessage = players.length < 2
-      ? 'Waiting for more players...'
+    const allReady = players.length === 3 && players.every(p => p.ready);
+    const waitingMessage = players.length < 3
+      ? 'Waiting for 3 players to join...'
       : (allReady ? 'Starting game...' : 'Waiting for all players to ready up...');
 
     document.getElementById('game-area').innerHTML = `

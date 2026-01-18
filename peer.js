@@ -277,7 +277,7 @@ const PeerConnection = {
   // Check if all players are ready (host only)
   checkAllReady() {
     if (!this.isHost) return;
-    if (this.players.length < 2) return; // Need at least 2 players
+    if (this.players.length < 3) return; // Need exactly 3 players
 
     const allReady = this.players.every(p => p.ready);
     if (allReady && !this.allReady) {
