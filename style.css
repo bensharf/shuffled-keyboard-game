@@ -206,6 +206,25 @@ body {
   color: #ff6b6b;
 }
 
+/* Player list in lobby */
+.player-list {
+  margin: 1rem 0;
+}
+
+.players-in-lobby {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lobby-player {
+  background: var(--bills-blue-light);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--bills-white);
+  font-weight: 600;
+}
+
 /* Game screen */
 .game-screen {
   width: 100%;
@@ -216,7 +235,7 @@ body {
   gap: 1rem;
 }
 
-.score-display {
+.round-display {
   font-size: 1rem;
   color: var(--bills-white);
   padding: 0.5rem 1rem;
@@ -224,6 +243,39 @@ body {
   border-radius: 20px;
   font-weight: 600;
   border: 2px solid var(--bills-white);
+}
+
+/* Players status during game */
+.players-status {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.player-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.player-status.me {
+  background: var(--bills-blue-light);
+  border: 2px solid var(--bills-white);
+}
+
+.player-name {
+  font-weight: 600;
+}
+
+.player-progress {
+  font-family: monospace;
+  font-size: 0.85rem;
 }
 
 .word-container {
@@ -380,13 +432,17 @@ body {
 }
 
 .results .score {
-  font-size: 1.2rem;
+  font-size: 1rem;
   margin-bottom: 2rem;
   background: var(--bills-red);
   padding: 0.75rem 1.5rem;
   border-radius: 12px;
   display: inline-block;
   border: 2px solid var(--bills-white);
+}
+
+.score-item {
+  white-space: nowrap;
 }
 
 .results .btn {

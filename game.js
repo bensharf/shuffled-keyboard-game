@@ -1,4 +1,4 @@
-// Game logic for the shuffled keyboard typing game
+// Game logic for the shuffled keyboard typing game - supports up to 3 players
 
 const Game = {
   // Standard QWERTY layout
@@ -10,20 +10,17 @@ const Game = {
 
   // Game state
   state: {
-    phase: 'lobby', // lobby, countdown, playing, results
+    phase: 'lobby', // lobby, waiting, countdown, playing, results
     seed: null,
     roundNumber: 0,
     currentWord: '',
     typedChars: '',
     startTime: null,
     endTime: null,
-    myScore: 0,
-    opponentScore: 0,
-    myTime: null,
-    opponentTime: null,
-    opponentProgress: 0,
     shuffledLayout: null,
-    keyMapping: null // Maps physical key to displayed (shuffled) key
+    keyMapping: null,
+    players: [], // {id, name, score, time, progress, finished}
+    myPlayerId: null
   },
 
   // Initialize the game
@@ -45,14 +42,9 @@ const Game = {
   // Generate shuffled keyboard layout from seed
   generateShuffledLayout(seed) {
     const rng = seededRandom(seed);
-
-    // Flatten all keys
     const allKeys = this.QWERTY_ROWS.flat();
-
-    // Shuffle all keys
     const shuffledKeys = this.shuffleArray(allKeys, rng);
 
-    // Rebuild rows with same structure
     let index = 0;
     const shuffledRows = this.QWERTY_ROWS.map(row => {
       const newRow = shuffledKeys.slice(index, index + row.length);
@@ -60,8 +52,6 @@ const Game = {
       return newRow;
     });
 
-    // Create mapping from QWERTY position to shuffled key
-    // This maps what physical key you press to what letter appears
     const keyMapping = {};
     const qwertyFlat = this.QWERTY_ROWS.flat();
     for (let i = 0; i < qwertyFlat.length; i++) {
@@ -129,10 +119,8 @@ const Game = {
         return;
       }
 
-      // Check if it's a letter key
       if (key.length === 1 && key >= 'A' && key <= 'Z') {
         e.preventDefault();
-        // Map physical key to shuffled key
         const mappedKey = this.state.keyMapping[key];
         if (mappedKey) {
           this.handleKeyPress(mappedKey);
@@ -141,7 +129,7 @@ const Game = {
     });
   },
 
-  // Handle key press (from on-screen or physical keyboard)
+  // Handle key press
   handleKeyPress(key) {
     if (this.state.phase !== 'playing') return;
 
@@ -152,10 +140,8 @@ const Game = {
       this.updateWordDisplay();
       this.highlightKey(key, 'correct');
 
-      // Send progress to opponent
       PeerConnection.sendProgress(this.state.typedChars.length);
 
-      // Check if word is complete
       if (this.state.typedChars === this.state.currentWord) {
         this.completeWord();
       }
@@ -202,41 +188,86 @@ const Game = {
     display.innerHTML = html;
   },
 
-  // Update opponent progress display
-  updateOpponentProgress(progress) {
-    this.state.opponentProgress = progress;
-    const display = document.getElementById('opponent-status');
-    if (display) {
-      const progressBar = '█'.repeat(progress) + '░'.repeat(this.state.currentWord.length - progress);
-      display.textContent = `Opponent: [${progressBar}]`;
+  // Update a player's progress
+  updatePlayerProgress(playerId, progress) {
+    const player = this.state.players.find(p => p.id === playerId);
+    if (player) {
+      player.progress = progress;
+      this.renderPlayersStatus();
     }
+  },
+
+  // Render all players' status during gameplay
+  renderPlayersStatus() {
+    const container = document.getElementById('players-status');
+    if (!container) return;
+
+    let html = '';
+    this.state.players.forEach(player => {
+      const isMe = player.id === this.state.myPlayerId;
+      const statusClass = isMe ? 'player-status me' : 'player-status';
+
+      let status;
+      if (player.finished) {
+        status = `${player.time.toFixed(2)}s`;
+      } else {
+        const progressBar = '█'.repeat(player.progress) + '░'.repeat(this.state.currentWord.length - player.progress);
+        status = `[${progressBar}]`;
+      }
+
+      html += `
+        <div class="${statusClass}">
+          <span class="player-name">${player.name}${isMe ? ' (You)' : ''}</span>
+          <span class="player-progress">${status}</span>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
   },
 
   // Complete word - player finished typing
   completeWord() {
     this.state.endTime = Date.now();
-    this.state.myTime = (this.state.endTime - this.state.startTime) / 1000;
+    const myTime = (this.state.endTime - this.state.startTime) / 1000;
     this.state.phase = 'waiting';
 
-    // Send completion to opponent
-    PeerConnection.sendComplete(this.state.myTime);
+    // Update my player data
+    const myPlayer = this.state.players.find(p => p.id === this.state.myPlayerId);
+    if (myPlayer) {
+      myPlayer.time = myTime;
+      myPlayer.finished = true;
+    }
 
-    document.getElementById('my-status').textContent = `Your time: ${this.state.myTime.toFixed(2)}s`;
-
-    // Check if both players finished
+    PeerConnection.sendComplete(myTime);
+    this.renderPlayersStatus();
     this.checkRoundEnd();
   },
 
-  // Opponent completed the word
-  opponentComplete(time) {
-    this.state.opponentTime = time;
-    document.getElementById('opponent-status').textContent = `Opponent: ${time.toFixed(2)}s`;
+  // Another player completed the word
+  playerComplete(playerId, time) {
+    const player = this.state.players.find(p => p.id === playerId);
+    if (player) {
+      player.time = time;
+      player.finished = true;
+      player.progress = this.state.currentWord.length;
+    }
+
+    this.renderPlayersStatus();
+    this.checkRoundEnd();
+  },
+
+  // Handle player disconnect during game
+  handlePlayerDisconnect(playerId) {
+    this.state.players = this.state.players.filter(p => p.id !== playerId);
+    this.renderPlayersStatus();
     this.checkRoundEnd();
   },
 
   // Check if round should end
   checkRoundEnd() {
-    if (this.state.myTime !== null && this.state.opponentTime !== null) {
+    const allFinished = this.state.players.every(p => p.finished);
+    if (allFinished) {
       this.endRound();
     }
   },
@@ -245,31 +276,54 @@ const Game = {
   endRound() {
     this.state.phase = 'results';
 
-    let resultText;
-    if (this.state.myTime < this.state.opponentTime) {
-      this.state.myScore++;
-      resultText = 'You win this round!';
-    } else if (this.state.opponentTime < this.state.myTime) {
-      this.state.opponentScore++;
-      resultText = 'Opponent wins this round!';
-    } else {
-      resultText = "It's a tie!";
+    // Sort players by time
+    const sortedPlayers = [...this.state.players].sort((a, b) => a.time - b.time);
+
+    // Award points (1st place = 2 pts, 2nd = 1 pt, 3rd = 0 pts for 3 players)
+    // For 2 players: winner gets 1 pt
+    if (sortedPlayers.length === 2) {
+      sortedPlayers[0].score++;
+    } else if (sortedPlayers.length >= 3) {
+      sortedPlayers[0].score += 2;
+      sortedPlayers[1].score += 1;
     }
 
-    this.showResults(resultText);
+    this.showResults(sortedPlayers);
   },
 
   // Show results screen
-  showResults(resultText) {
+  showResults(sortedPlayers) {
+    const myPlayer = this.state.players.find(p => p.id === this.state.myPlayerId);
+    const myRank = sortedPlayers.findIndex(p => p.id === this.state.myPlayerId) + 1;
+
+    let resultText;
+    if (myRank === 1) {
+      resultText = 'You win this round!';
+    } else if (myRank === 2) {
+      resultText = sortedPlayers.length === 2 ? 'You lost this round!' : '2nd place!';
+    } else {
+      resultText = '3rd place!';
+    }
+
+    let timesHtml = sortedPlayers.map((p, i) => {
+      const medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉');
+      const isMe = p.id === this.state.myPlayerId;
+      return `<p>${medal} ${p.name}${isMe ? ' (You)' : ''}: ${p.time.toFixed(2)}s</p>`;
+    }).join('');
+
+    let scoresHtml = this.state.players.map(p => {
+      const isMe = p.id === this.state.myPlayerId;
+      return `<span class="score-item">${p.name}${isMe ? ' (You)' : ''}: ${p.score}</span>`;
+    }).join(' | ');
+
     document.getElementById('game-area').innerHTML = `
       <div class="results">
         <h2>${resultText}</h2>
         <div class="times">
-          <p>Your time: ${this.state.myTime.toFixed(2)}s</p>
-          <p>Opponent time: ${this.state.opponentTime.toFixed(2)}s</p>
+          ${timesHtml}
         </div>
         <div class="score">
-          <p>Score: You ${this.state.myScore} - ${this.state.opponentScore} Opponent</p>
+          <p>${scoresHtml}</p>
         </div>
         <button id="next-round-btn" class="btn btn-primary">Next Round</button>
       </div>
@@ -302,9 +356,13 @@ const Game = {
   beginRound(word) {
     this.state.currentWord = word;
     this.state.typedChars = '';
-    this.state.myTime = null;
-    this.state.opponentTime = null;
-    this.state.opponentProgress = 0;
+
+    // Reset player state for new round
+    this.state.players.forEach(p => {
+      p.time = null;
+      p.progress = 0;
+      p.finished = false;
+    });
 
     this.renderGameScreen();
     this.startCountdown();
@@ -314,16 +372,13 @@ const Game = {
   renderGameScreen() {
     document.getElementById('game-area').innerHTML = `
       <div class="game-screen">
-        <div class="score-display">
-          You ${this.state.myScore} - ${this.state.opponentScore} Opponent
+        <div class="round-display">
+          Round ${this.state.roundNumber}
         </div>
         <div class="word-container">
           <div id="word-display" class="word-display"></div>
         </div>
-        <div class="status-container">
-          <p id="my-status">Your time: --</p>
-          <p id="opponent-status">Opponent: waiting...</p>
-        </div>
+        <div id="players-status" class="players-status"></div>
         <div id="countdown" class="countdown"></div>
         <div id="keyboard" class="keyboard"></div>
       </div>
@@ -331,6 +386,7 @@ const Game = {
 
     this.renderKeyboard();
     this.updateWordDisplay();
+    this.renderPlayersStatus();
   },
 
   // Start countdown before round
@@ -361,7 +417,6 @@ const Game = {
   startPlaying() {
     this.state.phase = 'playing';
     this.state.startTime = Date.now();
-    document.getElementById('opponent-status').textContent = 'Opponent: typing...';
   },
 
   // Render lobby screen
@@ -405,7 +460,7 @@ const Game = {
     });
   },
 
-  // Show room code after creating
+  // Show room code after creating (host view)
   showRoomCode(code) {
     document.getElementById('room-status').innerHTML = `
       <div class="room-code-display">
@@ -414,7 +469,9 @@ const Game = {
           <div class="code" id="room-code">${code}</div>
           <button class="btn-copy" id="copy-code-btn" title="Copy code">Copy</button>
         </div>
-        <p class="waiting">Waiting for opponent...</p>
+        <div id="player-list" class="player-list"></div>
+        <p class="waiting">Waiting for players... (1-2 more can join)</p>
+        <button id="start-game-btn" class="btn btn-primary" style="margin-top: 1rem; display: none;">Start Game</button>
       </div>
     `;
 
@@ -430,7 +487,6 @@ const Game = {
       });
     });
 
-    // Also make the code itself clickable to copy
     document.getElementById('room-code').addEventListener('click', () => {
       navigator.clipboard.writeText(code).then(() => {
         const btn = document.getElementById('copy-code-btn');
@@ -442,6 +498,58 @@ const Game = {
         }, 2000);
       });
     });
+
+    document.getElementById('start-game-btn').addEventListener('click', () => {
+      PeerConnection.startGame();
+    });
+  },
+
+  // Show waiting room (guest view)
+  showWaitingRoom(players) {
+    document.getElementById('room-status').innerHTML = `
+      <div class="room-code-display">
+        <p>Connected to room!</p>
+        <div id="player-list" class="player-list"></div>
+        <p class="waiting">Waiting for host to start...</p>
+      </div>
+    `;
+    this.updatePlayerList(players);
+  },
+
+  // Update player list display
+  updatePlayerList(players) {
+    const container = document.getElementById('player-list');
+    if (!container) return;
+
+    let html = '<div class="players-in-lobby">';
+    players.forEach((p, i) => {
+      const isHost = i === 0;
+      html += `<div class="lobby-player">${p.name}${isHost ? ' (Host)' : ''}</div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Show/hide start button for host
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn && PeerConnection.isHost) {
+      if (players.length >= 2) {
+        startBtn.style.display = 'block';
+        startBtn.textContent = `Start Game (${players.length} players)`;
+      } else {
+        startBtn.style.display = 'none';
+      }
+    }
+
+    // Update waiting text
+    const waitingEl = document.querySelector('.waiting');
+    if (waitingEl && PeerConnection.isHost) {
+      const spotsLeft = 3 - players.length;
+      if (spotsLeft > 0) {
+        waitingEl.textContent = `Waiting for players... (${spotsLeft} more can join)`;
+      } else {
+        waitingEl.textContent = 'Room is full!';
+      }
+    }
   },
 
   // Show connecting status
@@ -458,12 +566,21 @@ const Game = {
     `;
   },
 
-  // Both players connected - start game
-  startGame(seed) {
+  // Start game with all players
+  startGame(seed, players) {
     this.state.seed = seed;
-    this.state.myScore = 0;
-    this.state.opponentScore = 0;
     this.state.roundNumber = 0;
+    this.state.myPlayerId = PeerConnection.playerId;
+
+    // Initialize player data
+    this.state.players = players.map(p => ({
+      id: p.id,
+      name: p.name,
+      score: 0,
+      time: null,
+      progress: 0,
+      finished: false
+    }));
 
     // Generate the shuffled layout
     this.generateShuffledLayout(seed);
