@@ -369,7 +369,10 @@ const Game = {
   },
 
   // Begin a round (all players)
-  beginRound(word) {
+  beginRound(word, roundNumber) {
+    if (roundNumber !== undefined) {
+      this.state.roundNumber = roundNumber;
+    }
     this.state.currentWord = word;
     this.state.typedChars = '';
 
@@ -481,7 +484,7 @@ const Game = {
       <div class="lobby">
         ${this.getBillsLogo()}
         <h1>Scotty's Keyboard Shuffle</h1>
-        <p class="subtitle">GO BILLS! Type fast on a shuffled keyboard!</p>
+        <p class="subtitle">Race to type words on a shuffled keyboard. First to 5 wins!</p>
 
         <div class="username-section">
           <input type="text" id="username-input" placeholder="Enter your name" maxlength="12">

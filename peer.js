@@ -224,7 +224,7 @@ const PeerConnection = {
         break;
 
       case 'start-round':
-        Game.beginRound(data.word);
+        Game.beginRound(data.word, data.roundNumber);
         break;
 
       case 'progress':
