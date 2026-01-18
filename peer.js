@@ -1,13 +1,12 @@
-// P2P connection handling using PeerJS - supports up to 3 players
+// P2P connection handling using PeerJS - 2 players only
 
 const PeerConnection = {
   peer: null,
-  connections: [], // Array of connections (for host) or single connection (for guest)
+  connection: null,
   isHost: false,
   roomCode: null,
-  playerId: null, // Unique ID for this player
+  playerId: null,
   playerName: null,
-  connectedPlayers: [], // List of {id, name} for all players in the game
 
   // Generate a random room code
   generateRoomCode() {
@@ -19,11 +18,6 @@ const PeerConnection = {
     return code;
   },
 
-  // Generate a player ID
-  generatePlayerId() {
-    return 'P' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  },
-
   // Generate a game seed
   generateSeed() {
     return Math.floor(Math.random() * 2147483647);
@@ -33,9 +27,8 @@ const PeerConnection = {
   createRoom() {
     this.isHost = true;
     this.roomCode = this.generateRoomCode();
-    this.playerId = this.generatePlayerId();
+    this.playerId = 'host';
     this.playerName = 'Player 1';
-    this.connectedPlayers = [{id: this.playerId, name: this.playerName}];
 
     Game.showConnecting();
 
@@ -46,12 +39,11 @@ const PeerConnection = {
     this.peer.on('open', (id) => {
       console.log('Room created with ID:', id);
       Game.showRoomCode(id);
-      Game.updatePlayerList(this.connectedPlayers);
     });
 
     this.peer.on('connection', (conn) => {
-      if (this.connections.length >= 2) {
-        // Room is full (host + 2 guests = 3 players max)
+      if (this.connection) {
+        // Room is full - reject
         conn.on('open', () => {
           conn.send({ type: 'room-full' });
           setTimeout(() => conn.close(), 100);
@@ -60,8 +52,18 @@ const PeerConnection = {
       }
 
       console.log('Guest connected');
-      this.connections.push(conn);
-      this.setupHostConnection(conn);
+      this.connection = conn;
+      this.setupConnection();
+
+      conn.on('open', () => {
+        // Start the game immediately
+        const seed = this.generateSeed();
+        this.send({
+          type: 'game-start',
+          seed: seed
+        });
+        Game.startGame(seed);
+      });
     });
 
     this.peer.on('error', (err) => {
@@ -74,90 +76,12 @@ const PeerConnection = {
     });
   },
 
-  // Setup connection handler for host
-  setupHostConnection(conn) {
-    conn.on('open', () => {
-      const guestId = this.generatePlayerId();
-      const guestName = 'Player ' + (this.connectedPlayers.length + 1);
-
-      conn.playerId = guestId;
-      conn.playerName = guestName;
-
-      this.connectedPlayers.push({id: guestId, name: guestName});
-
-      // Send player info to the new guest
-      conn.send({
-        type: 'player-info',
-        playerId: guestId,
-        playerName: guestName,
-        allPlayers: this.connectedPlayers
-      });
-
-      // Notify all existing guests about the updated player list
-      this.broadcast({
-        type: 'player-list-update',
-        players: this.connectedPlayers
-      });
-
-      Game.updatePlayerList(this.connectedPlayers);
-    });
-
-    conn.on('data', (data) => {
-      this.handleHostMessage(data, conn);
-    });
-
-    conn.on('close', () => {
-      console.log('Guest disconnected:', conn.playerId);
-      this.connections = this.connections.filter(c => c !== conn);
-      this.connectedPlayers = this.connectedPlayers.filter(p => p.id !== conn.playerId);
-
-      this.broadcast({
-        type: 'player-list-update',
-        players: this.connectedPlayers
-      });
-
-      Game.updatePlayerList(this.connectedPlayers);
-
-      if (Game.state.phase === 'playing' || Game.state.phase === 'countdown') {
-        Game.handlePlayerDisconnect(conn.playerId);
-      }
-    });
-  },
-
-  // Handle messages as host
-  handleHostMessage(data, fromConn) {
-    console.log('Host received:', data);
-
-    switch (data.type) {
-      case 'progress':
-        // Relay progress to all other players
-        this.broadcast({
-          type: 'progress',
-          playerId: fromConn.playerId,
-          progress: data.progress
-        }, fromConn);
-        Game.updatePlayerProgress(fromConn.playerId, data.progress);
-        break;
-
-      case 'complete':
-        // Relay completion to all other players
-        this.broadcast({
-          type: 'complete',
-          playerId: fromConn.playerId,
-          time: data.time
-        }, fromConn);
-        Game.playerComplete(fromConn.playerId, data.time);
-        break;
-
-      default:
-        console.log('Unknown message type:', data.type);
-    }
-  },
-
   // Join an existing room (guest)
   joinRoom(code) {
     this.isHost = false;
     this.roomCode = code;
+    this.playerId = 'guest';
+    this.playerName = 'Player 2';
 
     Game.showConnecting();
 
@@ -167,17 +91,16 @@ const PeerConnection = {
 
     this.peer.on('open', () => {
       console.log('Connecting to room:', code);
-      const conn = this.peer.connect(code, {
+      this.connection = this.peer.connect(code, {
         reliable: true
       });
 
-      conn.on('open', () => {
+      this.connection.on('open', () => {
         console.log('Connected to host');
-        this.connections = [conn];
-        this.setupGuestConnection(conn);
+        this.setupConnection();
       });
 
-      conn.on('error', (err) => {
+      this.connection.on('error', (err) => {
         console.error('Connection error:', err);
         Game.showError('Failed to connect. Check the room code.');
       });
@@ -193,43 +116,31 @@ const PeerConnection = {
     });
   },
 
-  // Setup connection handler for guest
-  setupGuestConnection(conn) {
-    conn.on('data', (data) => {
-      this.handleGuestMessage(data);
+  // Setup connection event handlers
+  setupConnection() {
+    this.connection.on('data', (data) => {
+      this.handleMessage(data);
     });
 
-    conn.on('close', () => {
-      console.log('Disconnected from host');
-      Game.showError('Host disconnected.');
+    this.connection.on('close', () => {
+      console.log('Connection closed');
+      Game.showError('Opponent disconnected.');
       this.cleanup();
     });
   },
 
-  // Handle messages as guest
-  handleGuestMessage(data) {
-    console.log('Guest received:', data);
+  // Handle incoming messages
+  handleMessage(data) {
+    console.log('Received:', data);
 
     switch (data.type) {
       case 'room-full':
-        Game.showError('Room is full (max 3 players).');
+        Game.showError('Room is full.');
         this.cleanup();
         break;
 
-      case 'player-info':
-        this.playerId = data.playerId;
-        this.playerName = data.playerName;
-        this.connectedPlayers = data.allPlayers;
-        Game.showWaitingRoom(this.connectedPlayers);
-        break;
-
-      case 'player-list-update':
-        this.connectedPlayers = data.players;
-        Game.updatePlayerList(this.connectedPlayers);
-        break;
-
       case 'game-start':
-        Game.startGame(data.seed, data.players);
+        Game.startGame(data.seed);
         break;
 
       case 'start-round':
@@ -237,11 +148,11 @@ const PeerConnection = {
         break;
 
       case 'progress':
-        Game.updatePlayerProgress(data.playerId, data.progress);
+        Game.updateOpponentProgress(data.progress);
         break;
 
       case 'complete':
-        Game.playerComplete(data.playerId, data.time);
+        Game.opponentComplete(data.time);
         break;
 
       default:
@@ -249,76 +160,32 @@ const PeerConnection = {
     }
   },
 
-  // Broadcast message to all connections (optionally exclude one)
-  broadcast(data, excludeConn = null) {
-    this.connections.forEach(conn => {
-      if (conn !== excludeConn && conn.open) {
-        conn.send(data);
-      }
-    });
-  },
-
-  // Send message (guest sends to host, host broadcasts)
+  // Send a message to the other player
   send(data) {
-    if (this.isHost) {
-      this.broadcast(data);
-    } else if (this.connections[0] && this.connections[0].open) {
-      this.connections[0].send(data);
+    if (this.connection && this.connection.open) {
+      this.connection.send(data);
     }
   },
 
   // Send typing progress
   sendProgress(progress) {
-    if (this.isHost) {
-      // Host broadcasts their own progress
-      this.broadcast({
-        type: 'progress',
-        playerId: this.playerId,
-        progress: progress
-      });
-    } else {
-      // Guest sends to host
-      this.send({
-        type: 'progress',
-        progress: progress
-      });
-    }
+    this.send({
+      type: 'progress',
+      progress: progress
+    });
   },
 
   // Send completion
   sendComplete(time) {
-    if (this.isHost) {
-      this.broadcast({
-        type: 'complete',
-        playerId: this.playerId,
-        time: time
-      });
-    } else {
-      this.send({
-        type: 'complete',
-        time: time
-      });
-    }
-  },
-
-  // Start the game (host only)
-  startGame() {
-    if (!this.isHost) return;
-
-    const seed = this.generateSeed();
-
-    this.broadcast({
-      type: 'game-start',
-      seed: seed,
-      players: this.connectedPlayers
+    this.send({
+      type: 'complete',
+      time: time
     });
-
-    Game.startGame(seed, this.connectedPlayers);
   },
 
   // Send start round (host only)
   sendStartRound(roundData) {
-    this.broadcast({
+    this.send({
       type: 'start-round',
       roundNumber: roundData.roundNumber,
       word: roundData.word
@@ -327,8 +194,10 @@ const PeerConnection = {
 
   // Cleanup connection
   cleanup() {
-    this.connections.forEach(conn => conn.close());
-    this.connections = [];
+    if (this.connection) {
+      this.connection.close();
+      this.connection = null;
+    }
     if (this.peer) {
       this.peer.destroy();
       this.peer = null;
