@@ -449,12 +449,39 @@ const Game = {
     this.state.startTime = Date.now();
   },
 
+  // Buffalo Bills charging buffalo logo SVG
+  getBillsLogo() {
+    return `<svg class="bills-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- Charging Buffalo silhouette -->
+      <ellipse cx="50" cy="75" rx="35" ry="8" fill="rgba(0,0,0,0.2)"/>
+      <g fill="#C60C30" stroke="#ffffff" stroke-width="2">
+        <!-- Body -->
+        <ellipse cx="45" cy="50" rx="30" ry="20"/>
+        <!-- Head -->
+        <circle cx="78" cy="45" r="14"/>
+        <!-- Front legs -->
+        <path d="M30 65 L25 85 L30 85 L35 65"/>
+        <path d="M45 65 L42 85 L47 85 L50 65"/>
+        <!-- Back legs -->
+        <path d="M55 65 L58 85 L63 85 L60 65"/>
+        <!-- Horns -->
+        <path d="M72 32 Q65 20 55 22" stroke-width="4" fill="none"/>
+        <path d="M84 32 Q91 20 100 22" stroke-width="4" fill="none"/>
+        <!-- Tail -->
+        <path d="M15 45 Q5 40 8 50" stroke-width="3" fill="none"/>
+        <!-- Eye -->
+        <circle cx="82" cy="43" r="2" fill="#ffffff" stroke="none"/>
+      </g>
+    </svg>`;
+  },
+
   // Render lobby screen
   renderLobby() {
     document.getElementById('game-area').innerHTML = `
       <div class="lobby">
+        ${this.getBillsLogo()}
         <h1>Scotty's Keyboard Shuffle</h1>
-        <p class="subtitle">Go Bills! Type fast on a shuffled keyboard!</p>
+        <p class="subtitle">GO BILLS! Type fast on a shuffled keyboard!</p>
 
         <div class="username-section">
           <input type="text" id="username-input" placeholder="Enter your name" maxlength="12">
@@ -533,6 +560,7 @@ const Game = {
 
     document.getElementById('game-area').innerHTML = `
       <div class="ready-lobby">
+        ${this.getBillsLogo()}
         <h1>Scotty's Keyboard Shuffle</h1>
         <div class="room-code-header">
           <span>Room Code:</span>

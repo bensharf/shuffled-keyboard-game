@@ -175,20 +175,28 @@ body::after {
   max-width: 400px;
 }
 
+.bills-logo {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1rem;
+}
+
 .lobby h1 {
   font-size: 2.2rem;
   margin-bottom: 0.5rem;
-  background: linear-gradient(90deg, var(--bills-white), var(--bills-red), var(--bills-white));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: none;
+  color: var(--bills-white);
+  text-shadow: 2px 2px 0 var(--bills-red), -1px -1px 0 var(--bills-red);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .lobby .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--bills-red);
   margin-bottom: 2rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
 }
 
 .lobby-buttons {
@@ -716,13 +724,18 @@ input:focus {
   max-width: 450px;
 }
 
+.ready-lobby .bills-logo {
+  width: 80px;
+  height: 80px;
+}
+
 .ready-lobby h1 {
-  font-size: 2rem;
+  font-size: 1.8rem;
   margin-bottom: 1rem;
-  background: linear-gradient(90deg, var(--bills-white), var(--bills-red), var(--bills-white));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--bills-white);
+  text-shadow: 2px 2px 0 var(--bills-red), -1px -1px 0 var(--bills-red);
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .room-code-header {
