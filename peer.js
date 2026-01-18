@@ -157,6 +157,8 @@ const PeerConnection = {
     this.isHost = false;
     this.roomCode = code;
     this.myName = username;
+    this.joinAttempts = 0;
+    this.maxJoinAttempts = 3;
 
     Game.showConnecting();
 
@@ -172,41 +174,51 @@ const PeerConnection = {
 
     this.peer.on('open', () => {
       console.log('Connecting to room:', code);
-      this.hostConnection = this.peer.connect(code, {
-        reliable: true
-      });
-
-      this.hostConnection.on('open', () => {
-        console.log('Connected to host, sending join request...');
-        this.hostConnection.send({
-          type: 'join-request',
-          name: this.myName
-        });
-      });
-
-      this.hostConnection.on('data', (data) => {
-        this.handleGuestMessage(data);
-      });
-
-      this.hostConnection.on('close', () => {
-        console.log('Disconnected from host');
-        Game.showError('Host disconnected.');
-        this.cleanup();
-      });
-
-      this.hostConnection.on('error', (err) => {
-        console.error('Connection error:', err);
-        Game.showError('Failed to connect. Check the room code.');
-      });
+      this.attemptConnection(code);
     });
 
     this.peer.on('error', (err) => {
       console.error('Peer error:', err);
       if (err.type === 'peer-unavailable') {
-        Game.showError('Room not found. Check the code and try again.');
+        this.joinAttempts++;
+        if (this.joinAttempts < this.maxJoinAttempts) {
+          console.log(`Retry attempt ${this.joinAttempts}...`);
+          setTimeout(() => this.attemptConnection(code), 1500);
+        } else {
+          Game.showError('Room not found. Make sure the host has created the room and the code is correct.');
+        }
       } else {
         Game.showError('Connection error. Please try again.');
       }
+    });
+  },
+
+  // Attempt to connect to host
+  attemptConnection(code) {
+    this.hostConnection = this.peer.connect(code, {
+      reliable: true
+    });
+
+    this.hostConnection.on('open', () => {
+      console.log('Connected to host, sending join request...');
+      this.hostConnection.send({
+        type: 'join-request',
+        name: this.myName
+      });
+    });
+
+    this.hostConnection.on('data', (data) => {
+      this.handleGuestMessage(data);
+    });
+
+    this.hostConnection.on('close', () => {
+      console.log('Disconnected from host');
+      Game.showError('Host disconnected.');
+      this.cleanup();
+    });
+
+    this.hostConnection.on('error', (err) => {
+      console.error('Connection error:', err);
     });
   },
 
