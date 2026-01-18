@@ -24,7 +24,7 @@ body {
   position: relative;
 }
 
-/* Bills Mafia Background */
+/* Touchdown Celebration Background */
 body::before {
   content: '';
   position: fixed;
@@ -35,34 +35,38 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background-image:
-    /* Person jumping - left side */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 150'%3E%3Cpath fill='%23001a4d' d='M50 10 A15 15 0 1 1 50 40 A15 15 0 1 1 50 10 M30 50 L50 45 L70 50 L65 80 L75 120 L65 125 L50 90 L35 125 L25 120 L35 80 L30 50 M25 55 L10 75 M75 55 L90 45'/%3E%3C/svg%3E"),
-    /* Broken table pieces */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60'%3E%3Crect fill='%23001a4d' x='10' y='20' width='100' height='8' rx='2' transform='rotate(-15 60 24)'/%3E%3Crect fill='%23001a4d' x='15' y='28' width='8' height='25' rx='1' transform='rotate(-20 19 40)'/%3E%3Crect fill='%23001a4d' x='95' y='28' width='8' height='25' rx='1' transform='rotate(25 99 40)'/%3E%3C/svg%3E"),
-    /* Person mid-air - right side */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 150'%3E%3Cpath fill='%23001a4d' d='M50 10 A15 15 0 1 1 50 40 A15 15 0 1 1 50 10 M35 50 L50 45 L65 50 L55 75 L70 110 L60 115 L45 85 L30 115 L20 110 L40 75 L35 50 M20 60 L5 50 M80 60 L95 70'/%3E%3C/svg%3E"),
-    /* Another table getting smashed */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 80'%3E%3Crect fill='%23001a4d' x='20' y='25' width='100' height='10' rx='2' transform='rotate(10 70 30)'/%3E%3Crect fill='%23001a4d' x='25' y='35' width='8' height='30' rx='1' transform='rotate(-10 29 50)'/%3E%3Crect fill='%23001a4d' x='107' y='35' width='8' height='30' rx='1' transform='rotate(15 111 50)'/%3E%3Cpath fill='%23001a4d' d='M60 10 L70 5 L80 15 L75 25 L65 20 Z'/%3E%3C/svg%3E"),
-    /* Flying person with arms up */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 150'%3E%3Cpath fill='%23001a4d' d='M50 15 A12 12 0 1 1 50 39 A12 12 0 1 1 50 15 M40 45 L50 42 L60 45 L55 70 L65 105 L55 110 L50 80 L45 110 L35 105 L45 70 L40 45 M25 50 L15 30 M75 50 L85 30'/%3E%3C/svg%3E");
+    /* Player arms raised touchdown celebration - left */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160'%3E%3Cellipse fill='%23001a4d' cx='50' cy='18' rx='12' ry='14'/%3E%3Cpath fill='%23001a4d' d='M35 35 L50 32 L65 35 L62 75 L70 120 L60 125 L50 85 L40 125 L30 120 L38 75 Z'/%3E%3Cpath fill='%23001a4d' d='M35 38 L15 15 L20 10 L42 35' /%3E%3Cpath fill='%23001a4d' d='M65 38 L85 15 L80 10 L58 35' /%3E%3Crect fill='%23001a4d' x='45' y='28' width='10' height='4' rx='1'/%3E%3C/svg%3E"),
+    /* Player spiking football */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160'%3E%3Cellipse fill='%23001a4d' cx='50' cy='20' rx='11' ry='13'/%3E%3Cpath fill='%23001a4d' d='M38 38 L50 35 L62 38 L60 80 L68 125 L58 130 L50 90 L42 130 L32 125 L40 80 Z'/%3E%3Cpath fill='%23001a4d' d='M62 40 L85 70 L80 75 L58 50' /%3E%3Cpath fill='%23001a4d' d='M38 40 L25 55 L30 60 L42 48' /%3E%3Cellipse fill='%23001a4d' cx='88' cy='78' rx='8' ry='5' transform='rotate(45 88 78)'/%3E%3C/svg%3E"),
+    /* Player flexing/celebrating - right */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160'%3E%3Cellipse fill='%23001a4d' cx='50' cy='18' rx='12' ry='14'/%3E%3Cpath fill='%23001a4d' d='M36 36 L50 33 L64 36 L61 78 L68 125 L58 130 L50 88 L42 130 L32 125 L39 78 Z'/%3E%3Cpath fill='%23001a4d' d='M36 40 L20 45 L18 35 L25 25 L35 30 L38 42' /%3E%3Cpath fill='%23001a4d' d='M64 40 L80 45 L82 35 L75 25 L65 30 L62 42' /%3E%3Crect fill='%23001a4d' x='45' y='30' width='10' height='4' rx='1'/%3E%3C/svg%3E"),
+    /* Player doing dance move */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Cellipse fill='%23001a4d' cx='60' cy='20' rx='12' ry='14'/%3E%3Cpath fill='%23001a4d' d='M48 38 L60 35 L72 38 L70 75 L85 115 L75 122 L60 85 L50 125 L40 120 L50 75 Z'/%3E%3Cpath fill='%23001a4d' d='M48 42 L25 35 L28 25 L50 38' /%3E%3Cpath fill='%23001a4d' d='M72 42 L90 55 L85 62 L68 50' /%3E%3C/svg%3E"),
+    /* Player pointing to sky */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160'%3E%3Cellipse fill='%23001a4d' cx='50' cy='22' rx='11' ry='13'/%3E%3Cpath fill='%23001a4d' d='M38 40 L50 37 L62 40 L60 82 L67 128 L57 133 L50 92 L43 133 L33 128 L40 82 Z'/%3E%3Cpath fill='%23001a4d' d='M62 43 L75 8 L82 12 L65 48' /%3E%3Cpath fill='%23001a4d' d='M38 43 L28 58 L35 63 L43 52' /%3E%3C/svg%3E"),
+    /* Football */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 30'%3E%3Cellipse fill='%23001a4d' cx='25' cy='15' rx='20' ry='10'/%3E%3Cpath stroke='%23002266' stroke-width='1.5' fill='none' d='M25 5 L25 25 M15 8 Q25 15 15 22 M35 8 Q25 15 35 22'/%3E%3C/svg%3E");
   background-position:
-    5% 20%,
-    15% 75%,
-    85% 30%,
-    75% 80%,
-    50% 50%;
+    8% 25%,
+    25% 70%,
+    88% 20%,
+    70% 75%,
+    50% 45%,
+    15% 50%;
   background-size:
-    80px 120px,
-    100px 50px,
-    80px 120px,
-    110px 65px,
-    70px 105px;
+    90px 140px,
+    85px 135px,
+    90px 140px,
+    95px 140px,
+    85px 135px,
+    50px 30px;
   background-repeat: no-repeat;
-  opacity: 0.3;
-  animation: billsMafia 8s ease-in-out infinite;
+  opacity: 0.25;
+  animation: celebration 6s ease-in-out infinite;
 }
 
-/* Animated confetti/debris layer */
+/* Confetti and streamers layer */
 body::after {
   content: '';
   position: fixed;
@@ -73,52 +77,77 @@ body::after {
   pointer-events: none;
   z-index: 0;
   background-image:
-    /* Small debris pieces */
+    /* Confetti pieces */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23C60C30' x='5' y='5' width='10' height='4' transform='rotate(45 10 10)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23ffffff' x='5' y='5' width='8' height='3' transform='rotate(-30 10 10)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23C60C30' x='5' y='5' width='10' height='4' transform='rotate(20 10 10)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23ffffff' x='5' y='5' width='6' height='3' transform='rotate(-60 10 10)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23C60C30' x='5' y='5' width='8' height='3' transform='rotate(70 10 10)'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23C60C30' x='5' y='5' width='8' height='3' transform='rotate(70 10 10)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23ffffff' x='6' y='6' width='8' height='3' transform='rotate(15 10 10)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect fill='%23C60C30' x='5' y='5' width='6' height='4' transform='rotate(-45 10 10)'/%3E%3C/svg%3E"),
+    /* Small footballs */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 20'%3E%3Cellipse fill='%23C60C30' cx='15' cy='10' rx='12' ry='7'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 20'%3E%3Cellipse fill='%23C60C30' cx='15' cy='10' rx='12' ry='7'/%3E%3C/svg%3E");
   background-position:
-    10% 15%,
-    25% 60%,
-    60% 25%,
-    80% 70%,
-    45% 85%;
-  background-size: 25px 25px;
+    10% 12%,
+    25% 55%,
+    55% 18%,
+    75% 65%,
+    40% 80%,
+    85% 40%,
+    5% 70%,
+    92% 85%,
+    35% 35%;
+  background-size:
+    20px 20px,
+    18px 18px,
+    22px 22px,
+    16px 16px,
+    20px 20px,
+    18px 18px,
+    22px 22px,
+    25px 18px,
+    22px 15px;
   background-repeat: no-repeat;
-  opacity: 0.4;
-  animation: confetti 3s ease-in-out infinite;
+  opacity: 0.5;
+  animation: confettiFall 4s ease-in-out infinite;
 }
 
-@keyframes billsMafia {
+@keyframes celebration {
   0%, 100% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0.3;
-  }
-  25% {
-    transform: translateY(-10px) rotate(1deg);
-    opacity: 0.35;
-  }
-  50% {
-    transform: translateY(-5px) rotate(-1deg);
+    transform: translateY(0);
     opacity: 0.25;
   }
+  25% {
+    transform: translateY(-8px);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 0.22;
+  }
   75% {
-    transform: translateY(-15px) rotate(0.5deg);
-    opacity: 0.35;
+    transform: translateY(-12px);
+    opacity: 0.3;
   }
 }
 
-@keyframes confetti {
+@keyframes confettiFall {
   0%, 100% {
     transform: translateY(0) rotate(0deg);
+    opacity: 0.5;
   }
-  33% {
-    transform: translateY(20px) rotate(5deg);
+  25% {
+    transform: translateY(15px) rotate(3deg);
+    opacity: 0.6;
   }
-  66% {
-    transform: translateY(10px) rotate(-3deg);
+  50% {
+    transform: translateY(8px) rotate(-2deg);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translateY(20px) rotate(4deg);
+    opacity: 0.55;
   }
 }
 
