@@ -22,7 +22,9 @@ const Game = {
     opponentScore: 0,
     opponentProgress: 0,
     shuffledLayout: null,
-    keyMapping: null
+    keyMapping: null,
+    myName: '',
+    opponentName: ''
   },
 
   // Initialize the game
@@ -196,7 +198,7 @@ const Game = {
     const display = document.getElementById('opponent-status');
     if (display && this.state.phase === 'playing') {
       const progressBar = '█'.repeat(progress) + '░'.repeat(this.state.currentWord.length - progress);
-      display.textContent = `Opponent: [${progressBar}]`;
+      display.textContent = `${this.state.opponentName}: [${progressBar}]`;
     }
   },
 
@@ -208,7 +210,7 @@ const Game = {
 
     PeerConnection.sendComplete(this.state.myTime);
 
-    document.getElementById('my-status').textContent = `You: ${this.state.myTime.toFixed(2)}s ✓`;
+    document.getElementById('my-status').textContent = `${this.state.myName}: ${this.state.myTime.toFixed(2)}s ✓`;
 
     this.checkRoundEnd();
   },
@@ -218,7 +220,7 @@ const Game = {
     this.state.opponentTime = time;
     const display = document.getElementById('opponent-status');
     if (display) {
-      display.textContent = `Opponent: ${time.toFixed(2)}s ✓`;
+      display.textContent = `${this.state.opponentName}: ${time.toFixed(2)}s ✓`;
     }
     this.checkRoundEnd();
   },
@@ -268,9 +270,9 @@ const Game = {
         <div class="final-score">
           <p>Final Score</p>
           <div class="final-score-display">
-            <span class="${iWon ? 'winner' : ''}">You: ${this.state.myScore}</span>
+            <span class="${iWon ? 'winner' : ''}">${this.state.myName}: ${this.state.myScore}</span>
             <span class="vs">-</span>
-            <span class="${!iWon ? 'winner' : ''}">Opponent: ${this.state.opponentScore}</span>
+            <span class="${!iWon ? 'winner' : ''}">${this.state.opponentName}: ${this.state.opponentScore}</span>
           </div>
         </div>
         <p class="game-over-message">${iWon ? 'Go Bills!' : 'Better luck next time!'}</p>
@@ -294,16 +296,16 @@ const Game = {
         </div>
         <div class="times">
           <div class="time-row ${this.state.myTime <= this.state.opponentTime ? 'winner' : ''}">
-            <span>You:</span>
+            <span>${this.state.myName}:</span>
             <span>${this.state.myTime.toFixed(2)}s</span>
           </div>
           <div class="time-row ${this.state.opponentTime < this.state.myTime ? 'winner' : ''}">
-            <span>Opponent:</span>
+            <span>${this.state.opponentName}:</span>
             <span>${this.state.opponentTime.toFixed(2)}s</span>
           </div>
         </div>
         <div class="score">
-          Score: ${this.state.myScore} - ${this.state.opponentScore}
+          ${this.state.myName}: ${this.state.myScore} | ${this.state.opponentName}: ${this.state.opponentScore}
         </div>
         <button id="next-round-btn" class="btn btn-primary">Next Round</button>
       </div>
@@ -347,7 +349,7 @@ const Game = {
   renderCountdownScreen() {
     document.getElementById('game-area').innerHTML = `
       <div class="game-screen">
-        <div class="score-display">You: ${this.state.myScore} | Opponent: ${this.state.opponentScore}</div>
+        <div class="score-display">${this.state.myName}: ${this.state.myScore} | ${this.state.opponentName}: ${this.state.opponentScore}</div>
         <div class="round-display">Round ${this.state.roundNumber}</div>
         <div class="get-ready">GET READY!</div>
         <div id="countdown" class="countdown">3</div>
@@ -387,8 +389,8 @@ const Game = {
           <div id="word-display" class="word-display"></div>
         </div>
         <div class="status-container">
-          <p id="my-status">You: typing...</p>
-          <p id="opponent-status">Opponent: typing...</p>
+          <p id="my-status">${this.state.myName}: typing...</p>
+          <p id="opponent-status">${this.state.opponentName}: typing...</p>
         </div>
         <div id="keyboard" class="keyboard"></div>
       </div>
@@ -412,6 +414,10 @@ const Game = {
         <h1>Scotty's Keyboard Shuffle</h1>
         <p class="subtitle">Go Bills! Type fast on a shuffled keyboard!</p>
 
+        <div class="username-section">
+          <input type="text" id="username-input" placeholder="Enter your name" maxlength="12">
+        </div>
+
         <div class="lobby-buttons">
           <button id="create-room-btn" class="btn btn-primary">Create Room</button>
           <div class="divider">or</div>
@@ -426,31 +432,34 @@ const Game = {
     `;
 
     document.getElementById('create-room-btn').addEventListener('click', () => {
-      PeerConnection.createRoom();
+      const username = document.getElementById('username-input').value.trim() || 'Player 1';
+      PeerConnection.createRoom(username);
     });
 
     document.getElementById('join-room-btn').addEventListener('click', () => {
       const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+      const username = document.getElementById('username-input').value.trim() || 'Player 2';
       if (code) {
-        PeerConnection.joinRoom(code);
+        PeerConnection.joinRoom(code, username);
       }
     });
 
     document.getElementById('room-code-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         const code = e.target.value.trim().toUpperCase();
+        const username = document.getElementById('username-input').value.trim() || 'Player 2';
         if (code) {
-          PeerConnection.joinRoom(code);
+          PeerConnection.joinRoom(code, username);
         }
       }
     });
   },
 
   // Show room code after creating
-  showRoomCode(code) {
+  showRoomCode(code, myName) {
     document.getElementById('room-status').innerHTML = `
       <div class="room-code-display">
-        <p>Room created! Share this code:</p>
+        <p>Hey <strong>${myName}</strong>! Share this code:</p>
         <div class="code-container">
           <div class="code" id="room-code">${code}</div>
           <button class="btn-copy" id="copy-code-btn" title="Copy code">Copy</button>
@@ -499,11 +508,13 @@ const Game = {
   },
 
   // Start game when both players connected
-  startGame(seed) {
+  startGame(seed, myName, opponentName) {
     this.state.seed = seed;
     this.state.myScore = 0;
     this.state.opponentScore = 0;
     this.state.roundNumber = 0;
+    this.state.myName = myName;
+    this.state.opponentName = opponentName;
 
     // Generate the shuffled layout
     this.generateShuffledLayout(seed);

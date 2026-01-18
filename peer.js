@@ -5,8 +5,8 @@ const PeerConnection = {
   connection: null,
   isHost: false,
   roomCode: null,
-  playerId: null,
-  playerName: null,
+  myName: null,
+  opponentName: null,
 
   // Generate a random room code
   generateRoomCode() {
@@ -24,11 +24,10 @@ const PeerConnection = {
   },
 
   // Create a room (host)
-  createRoom() {
+  createRoom(username) {
     this.isHost = true;
     this.roomCode = this.generateRoomCode();
-    this.playerId = 'host';
-    this.playerName = 'Player 1';
+    this.myName = username;
 
     Game.showConnecting();
 
@@ -38,7 +37,7 @@ const PeerConnection = {
 
     this.peer.on('open', (id) => {
       console.log('Room created with ID:', id);
-      Game.showRoomCode(id);
+      Game.showRoomCode(id, this.myName);
     });
 
     this.peer.on('connection', (conn) => {
@@ -54,16 +53,6 @@ const PeerConnection = {
       console.log('Guest connected');
       this.connection = conn;
       this.setupConnection();
-
-      conn.on('open', () => {
-        // Start the game immediately
-        const seed = this.generateSeed();
-        this.send({
-          type: 'game-start',
-          seed: seed
-        });
-        Game.startGame(seed);
-      });
     });
 
     this.peer.on('error', (err) => {
@@ -77,11 +66,10 @@ const PeerConnection = {
   },
 
   // Join an existing room (guest)
-  joinRoom(code) {
+  joinRoom(code, username) {
     this.isHost = false;
     this.roomCode = code;
-    this.playerId = 'guest';
-    this.playerName = 'Player 2';
+    this.myName = username;
 
     Game.showConnecting();
 
@@ -98,6 +86,11 @@ const PeerConnection = {
       this.connection.on('open', () => {
         console.log('Connected to host');
         this.setupConnection();
+        // Send our name to the host
+        this.send({
+          type: 'player-joined',
+          name: this.myName
+        });
       });
 
       this.connection.on('error', (err) => {
@@ -139,8 +132,23 @@ const PeerConnection = {
         this.cleanup();
         break;
 
+      case 'player-joined':
+        // Host receives guest's name
+        this.opponentName = data.name;
+        // Send game start with host's name
+        const seed = this.generateSeed();
+        this.send({
+          type: 'game-start',
+          seed: seed,
+          hostName: this.myName
+        });
+        Game.startGame(seed, this.myName, this.opponentName);
+        break;
+
       case 'game-start':
-        Game.startGame(data.seed);
+        // Guest receives host's name and game start
+        this.opponentName = data.hostName;
+        Game.startGame(data.seed, this.myName, this.opponentName);
         break;
 
       case 'start-round':

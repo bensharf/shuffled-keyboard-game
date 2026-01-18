@@ -236,6 +236,33 @@ body::after {
   padding: 0.5rem 0;
 }
 
+/* Username input */
+.username-section {
+  margin-bottom: 1.5rem;
+}
+
+.username-section input {
+  padding: 1rem;
+  font-size: 1.2rem;
+  text-align: center;
+  border: 3px solid var(--bills-red);
+  border-radius: 12px;
+  background: var(--bills-blue-dark);
+  color: var(--bills-white);
+  width: 100%;
+  max-width: 250px;
+}
+
+.username-section input:focus {
+  outline: none;
+  border-color: var(--bills-white);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.username-section input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .join-section {
   display: flex;
   flex-direction: column;
