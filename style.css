@@ -563,6 +563,54 @@ body::after {
   cursor: not-allowed;
 }
 
+/* Score display during countdown */
+.score-display {
+  font-size: 1rem;
+  color: var(--bills-white);
+  padding: 0.5rem 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  margin-bottom: 1rem;
+}
+
+/* Game Over screen */
+.game-over h2 {
+  font-size: 3rem;
+  margin-bottom: 2rem;
+}
+
+.final-score {
+  margin-bottom: 1.5rem;
+}
+
+.final-score p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.5rem;
+}
+
+.final-score-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.final-score-display .vs {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.final-score-display .winner {
+  color: #10b981;
+}
+
+.game-over-message {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 2rem;
+}
+
 /* Responsive adjustments for larger screens */
 @media (min-width: 600px) {
   .lobby h1 {

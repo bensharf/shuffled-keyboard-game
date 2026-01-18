@@ -250,7 +250,37 @@ const Game = {
       resultClass = 'tie';
     }
 
-    this.showResults(resultText, resultClass);
+    // Check if game is over (first to 5)
+    if (this.state.myScore >= 5 || this.state.opponentScore >= 5) {
+      this.showGameOver();
+    } else {
+      this.showResults(resultText, resultClass);
+    }
+  },
+
+  // Show game over screen
+  showGameOver() {
+    const iWon = this.state.myScore >= 5;
+
+    document.getElementById('game-area').innerHTML = `
+      <div class="results game-over">
+        <h2 class="${iWon ? 'win' : 'lose'}">${iWon ? 'VICTORY!' : 'DEFEAT!'}</h2>
+        <div class="final-score">
+          <p>Final Score</p>
+          <div class="final-score-display">
+            <span class="${iWon ? 'winner' : ''}">You: ${this.state.myScore}</span>
+            <span class="vs">-</span>
+            <span class="${!iWon ? 'winner' : ''}">Opponent: ${this.state.opponentScore}</span>
+          </div>
+        </div>
+        <p class="game-over-message">${iWon ? 'Go Bills!' : 'Better luck next time!'}</p>
+        <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+      </div>
+    `;
+
+    document.getElementById('play-again-btn').addEventListener('click', () => {
+      location.reload();
+    });
   },
 
   // Show results screen
@@ -313,18 +343,17 @@ const Game = {
     this.renderCountdownScreen();
   },
 
-  // Render countdown screen (word hidden)
+  // Render countdown screen (word and keyboard hidden)
   renderCountdownScreen() {
     document.getElementById('game-area').innerHTML = `
       <div class="game-screen">
+        <div class="score-display">You: ${this.state.myScore} | Opponent: ${this.state.opponentScore}</div>
         <div class="round-display">Round ${this.state.roundNumber}</div>
         <div class="get-ready">GET READY!</div>
         <div id="countdown" class="countdown">3</div>
-        <div id="keyboard" class="keyboard"></div>
       </div>
     `;
 
-    this.renderKeyboard();
     this.startCountdown();
   },
 
